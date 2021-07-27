@@ -44,20 +44,4 @@ def lda_model(corpus_text):
         eval_every=eval_every
     )
 
-    # Printing Topics
-    top_topics = model.top_topics(corpus_bow)  # , num_words=20)
-
-    # Average topic coherence is the sum of topic coherences of all topics, divided by the number of topics.
-    avg_topic_coherence = sum([t[1] for t in top_topics]) / num_topics
-    print('\nAverage topic coherence: %.4f.' % avg_topic_coherence)
-
-    print("\nThe top topics are:")
-    pprint(top_topics)
-
-
-print("Loading Documents...")
-docs = docs_stream()
-print("Document Tokenization...")
-docs_tokens = docs_tokenization(docs)
-print("LDA Model Creation...")
-lda_model(docs_tokens)
+    return model
