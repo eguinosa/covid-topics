@@ -2,9 +2,6 @@
 
 import spacy
 
-from pprint import pprint
-from docs_stream import docs_stream
-
 
 def docs_tokenization(documents):
     """
