@@ -18,10 +18,10 @@ def topic_processing(corpus_tokens):
 
     # Train the LDA Model
     # Set training parameters.
-    num_topics = 10
+    num_topics = 3
     chunksize = 20
-    passes = 20
-    iterations = 200
+    passes = 10
+    iterations = 400
     eval_every = None
 
     # Make a index to word dictionary.

@@ -7,6 +7,7 @@ from topic_processing import topic_processing
 
 
 if __name__ == '__main__':
+
     # Load all the documents about Covid-19 from the Wikipedia in the
     # docs/ folder.
     print("\nLoading Documents.")
