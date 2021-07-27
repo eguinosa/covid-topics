@@ -5,7 +5,7 @@ from os import listdir
 from os.path import isfile, join
 
 
-def documents_stream(dir_path='docs', file_ext=''):
+def docs_stream(dir_path='docs', file_ext=''):
     """
     This method receives the path where all the documents of the corpus are and
     the returns a sequence of the text of these documents so you can iterate
