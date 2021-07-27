@@ -26,13 +26,3 @@ def docs_tokenization(documents):
                        for token in text_doc
                        if token.is_alpha and not token.is_stop]
         yield text_tokens
-
-
-docs = docs_stream()
-tokens_docs = docs_tokenization(docs)
-
-doc_id = 1
-for tokens in tokens_docs:
-    print(f"\nPrinting the tokens of the Document #{doc_id}:")
-    pprint(tokens[:50], width=120, compact=True)
-    doc_id += 1
