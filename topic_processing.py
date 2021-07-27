@@ -4,17 +4,17 @@ from gensim.corpora import Dictionary
 from gensim.models import LdaModel
 
 
-def topic_processing(corpus_text):
+def topic_processing(corpus_tokens):
     """
     Receives a corpus in the form of tokenized documents and creates a LDA Model
     from them.
-    :param corpus_text: Sequence of tokenized documents.
+    :param corpus_tokens: Sequence of tokenized documents.
     :return: An LDA Model
     """
     # Create a dictionary representation of the documents
-    dictionary = Dictionary(corpus_text)
+    dictionary = Dictionary(corpus_tokens)
     # Bag-of-words representation of the documents
-    corpus_bow = [dictionary.doc2bow(doc) for doc in corpus_text]
+    corpus_bow = [dictionary.doc2bow(doc) for doc in corpus_tokens]
 
     # Train the LDA Model
     # Set training parameters.
