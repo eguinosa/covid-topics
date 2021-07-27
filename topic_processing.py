@@ -3,12 +3,8 @@
 from gensim.corpora import Dictionary
 from gensim.models import LdaModel
 
-from docs_stream import docs_stream
-from docs_tokenization import docs_tokenization
-from pprint import pprint
 
-
-def lda_model(corpus_text):
+def topic_processing(corpus_text):
     """
     Receives a corpus in the form of tokenized documents and creates a LDA Model
     from them.
@@ -44,4 +40,4 @@ def lda_model(corpus_text):
         eval_every=eval_every
     )
 
-    return model
+    return {'corpus_bow': corpus_bow, 'dictionary': dictionary, 'lda_model': model}
