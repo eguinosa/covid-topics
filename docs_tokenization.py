@@ -5,7 +5,7 @@ import spacy
 
 def docs_tokenization(documents):
     """
-    Receive the sequence of the texts of all the documents in the corpus, and
+    Receive the texts of all the documents in the corpus, and
     transform each text into an array of tokens.
     Removes all the stop words, punctuation symbols and numbers in the
     documents, lowercases the text and lemmatizes each token.
@@ -16,10 +16,15 @@ def docs_tokenization(documents):
     # Loading the English Package
     nlp = spacy.load('en_core_web_sm')
 
+    # List containing the tokens per each document in the corpus
+    docs_tokens = []
+
     # Iterate through the text of the documents and return their tokens
     for text in documents:
         text_doc = nlp(text)
         text_tokens = [token.lemma_.lower().strip()
                        for token in text_doc
                        if token.is_alpha and not token.is_stop]
-        yield text_tokens
+        docs_tokens.append(text_tokens)
+
+    return docs_tokens
