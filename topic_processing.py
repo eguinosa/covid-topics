@@ -18,7 +18,7 @@ def topic_processing(corpus_tokens):
 
     # Train the LDA Model
     # Set training parameters.
-    num_topics = 3
+    num_topics = 4
     chunksize = 20
     passes = 10
     iterations = 400
