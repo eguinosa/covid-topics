@@ -1,4 +1,18 @@
 
+# *******************
+#  For this project:
+# *******************
+
+# Ignore the documents in the corpus:
+docs/*
+
+# Ignore the Jupyter Notebooks:
+*.html
+*.ipynb
+
+
+# ****************************************
+
 # DS Store:
 *.DS_Store
 
