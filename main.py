@@ -3,7 +3,7 @@
 import time
 from pprint import pprint
 
-from docs_stream import docs_stream
+from docs_stream import DocumentsFiles
 from docs_tokenization import docs_tokenization
 from topic_processing import topic_processing
 
@@ -31,11 +31,12 @@ if __name__ == '__main__':
     # Load all the documents about Covid-19 from the Wikipedia in the
     # docs/ folder.
     print("\nLoading Documents.")
-    documents = docs_stream()
+    doc_files = DocumentsFiles()
+    doc_texts = doc_files.documents_texts()
 
     # Tokenize all the Documents loaded using Spacy
     print("Tokenizing all the documents.")
-    docs_tokens = docs_tokenization(documents)
+    docs_tokens = docs_tokenization(doc_texts)
 
     # Create the dictionary, transform the documents in Bag-of-Words
     # and create LDA Model
@@ -46,7 +47,7 @@ if __name__ == '__main__':
     lda_model = topic_process['lda_model']
 
     # Print Corpus Information
-    print(f"\nNumber of documents: {len(documents)}")
+    print(f"\nNumber of documents: {len(doc_files.documents)}")
     print(f"Number of unique tokens: {len(dictionary)}")
 
     # Printing Topics
