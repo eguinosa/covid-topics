@@ -6,6 +6,9 @@
 # Ignore the documents in the corpus:
 docs/*
 
+# Ignore the data saved by the program:
+data/*
+
 # Ignore the Jupyter Notebooks:
 *.html
 *.ipynb
