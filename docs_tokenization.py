@@ -1,6 +1,77 @@
 # Gelin Eguinosa Rosique
 
 import spacy
+from spacy.util import compile_infix_regex
+from spacy.lang.char_classes import ALPHA, ALPHA_LOWER, ALPHA_UPPER, CONCAT_QUOTES, LIST_ELLIPSES, LIST_ICONS
+
+import pickle
+from os.path import isfile, join
+from pprint import pprint
+
+
+def corpus_tokenization(documents, from_scratch=True, file_name='tokens.pickle'):
+    """
+    Receives the texts from the documents in the corpus and creates, and
+    transforms each document into an array of tokens.
+    Removes all the stop words, punctuation symbols and numbers in the
+    documents, lowercases the text and lemmatizes each token.
+    :param documents: An iterable sequence containing the texts of the documents
+    in the corpus.
+    :param from_scratch: Bool to determine if we used a previously calculated
+    tokenization of the corpus, or if we start from scratch, even though we have
+    the result of the tokenization saved.
+    :param file_name: The name of the file where the tokens are or will be saved.
+    :return: The list of tokens for each of the documents in the corpus.
+    """
+    # The Location of the tokens:
+    tokens_path = join('data', file_name)
+
+    # Check if the user wants to use the saved tokens and the tokens are
+    # saved.
+    if not from_scratch and isfile(tokens_path):
+        # We use pickle to save and load the tokens.
+        with open(tokens_path, 'rb') as file:
+            corpus_tokens = pickle.load(file)
+        return corpus_tokens
+
+    # Tokenization of the corpus:
+    # Loading the English Package
+    nlp = spacy.load('en_core_web_md')
+
+    # Changing the infixes to accept words with hyphens (-), like 'covid-19'
+    infixes = (
+            LIST_ELLIPSES
+            + LIST_ICONS
+            + [
+                r"(?<=[0-9])[+\-\*^](?=[0-9-])",
+                r"(?<=[{al}{q}])\.(?=[{au}{q}])".format(
+                    al=ALPHA_LOWER, au=ALPHA_UPPER, q=CONCAT_QUOTES
+                ),
+                r"(?<=[{a}]),(?=[{a}])".format(a=ALPHA),
+                # r"(?<=[{a}])(?:{h})(?=[{a}])".format(a=ALPHA, h=HYPHENS),
+                r"(?<=[{a}0-9])[:<>=/](?=[{a}])".format(a=ALPHA),
+            ]
+    )
+    infix_re = compile_infix_regex(infixes)
+    nlp.tokenizer.infix_finditer = infix_re.finditer
+
+    # Creating a list of lists containing the tokens of the documents
+    corpus_tokens = []
+
+    # Iterating through the text of the documents and doing the tokenization
+    for text in documents:
+        text_doc = nlp(text, disable=['ner', 'texcat'])
+        text_tokens = [token.lemma_.lower().strip()
+                       for token in text_doc
+                       if (token.is_alpha and not token.is_stop)
+                       or (not token.is_alpha and is_acceptable(token.text))]
+        corpus_tokens.append(text_tokens)
+
+    # Save the tokens of the corpus in a file:
+    with open(tokens_path, 'wb') as file:
+        pickle.dump(corpus_tokens, file)
+
+    return corpus_tokens
 
 
 def docs_tokenization(documents):
@@ -9,22 +80,105 @@ def docs_tokenization(documents):
     transform each text into an array of tokens.
     Removes all the stop words, punctuation symbols and numbers in the
     documents, lowercases the text and lemmatizes each token.
-    :param documents: A sequence containing all the texts of the documents.
+    :param documents: A sequence of the texts of all the documents in the corpus.
     :return: A list of tokens for each document.
     """
-
     # Loading the English Package
-    nlp = spacy.load('en_core_web_sm')
+    nlp = spacy.load('en_core_web_md')
 
     # List containing the tokens per each document in the corpus
     docs_tokens = []
 
     # Iterate through the text of the documents and return their tokens
     for text in documents:
-        text_doc = nlp(text)
+        text_doc = nlp(text, disable=['ner', 'textcat'])
         text_tokens = [token.lemma_.lower().strip()
                        for token in text_doc
                        if token.is_alpha and not token.is_stop]
         docs_tokens.append(text_tokens)
 
     return docs_tokens
+
+
+def is_acceptable(text):
+    """
+    Checks if a text only contains alphabetic or numeric characters, or hyphens
+    (-). The needs to have at least one alphabetic character to be acceptable.
+    :param text: The text we need to check
+    :return: A bool representing if the text contains only alphabetic
+    characters and hyphens or not.
+    """
+    # To see check if it has at least one alphabetic character and hyphen:
+    has_alpha = False
+    has_hyphen = False
+    for char in text:
+        # If it's not alphabetic, numeric or a hyphen, not a valid word
+        if not (char.isalpha() or char.isnumeric()) and char != '-':
+            return False
+        if char.isalpha():
+            has_alpha = True
+        if char == '-':
+            has_hyphen = True
+    return has_alpha and has_hyphen
+
+
+about_text = ('Gus Proto is a Python developer currently working for a'
+              ' London-based Fintech company. He is interested in learning'
+              ' Natural Language Processing.\nThe rest is history. -123')
+
+fun_text = ('Well, this is the story of a friend of mine who really wanted'
+            ' to be the best football-player history has ever seen, but the'
+            ' thing is covid-19 happened, end of the fun-story.')
+
+docs = [about_text, fun_text]
+
+docs_tokens = corpus_tokenization(docs, from_scratch=True)
+print("\nThe tokens the documents:")
+for tokens in docs_tokens:
+    pprint(tokens, width=80, compact=True)
+
+# print("\nThis is the text:")
+# print(about_text)
+#
+# extra_nlp = spacy.load('en_core_web_sm')
+# about_doc = extra_nlp(about_text)
+# print("\nThe tokens of the text:")
+# pprint([token.text for token in about_doc], width=120, compact=True)
+#
+# print("\nThe tokens' attributes:")
+# for token in about_doc:
+#     print(f"\nToken: {token}")
+#     print(f"idx: {token.idx}, Alpha: {token.is_alpha}")
+#     print(f"Punctuation: {token.is_punct}, Space: {token.is_space}")
+#     print(f"Stop Word: {token.is_stop}, Shape: {token.shape_}")
+#
+# # Creating a new tokenizer to accept words with '-'
+# custom_nlp = spacy.load('en_core_web_sm')
+#
+# infixes = (
+#         LIST_ELLIPSES
+#         + LIST_ICONS
+#         + [
+#             r"(?<=[0-9])[+\-\*^](?=[0-9-])",
+#             r"(?<=[{al}{q}])\.(?=[{au}{q}])".format(
+#                 al=ALPHA_LOWER, au=ALPHA_UPPER, q=CONCAT_QUOTES
+#             ),
+#             r"(?<=[{a}]),(?=[{a}])".format(a=ALPHA),
+#             # r"(?<=[{a}])(?:{h})(?=[{a}])".format(a=ALPHA, h=HYPHENS),
+#             r"(?<=[{a}0-9])[:<>=/](?=[{a}])".format(a=ALPHA),
+#         ]
+#     )
+#
+# infix_re = compile_infix_regex(infixes)
+# custom_nlp.tokenizer.infix_finditer = infix_re.finditer
+#
+# new_about_doc = custom_nlp(about_text)
+# print("\nThe tokens of the texts:")
+# pprint([token.text for token in new_about_doc], width=120, compact=True)
+#
+# print("\nThe tokens' attributes:")
+# for token in new_about_doc:
+#     print(f"\nToken: {token}")
+#     print(f"idx: {token.idx}, Alpha: {token.is_alpha}")
+#     print(f"Punctuation: {token.is_punct}, Space: {token.is_space}")
+#     print(f"Stop Word: {token.is_stop}, Shape: {token.shape_}")
