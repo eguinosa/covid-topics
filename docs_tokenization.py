@@ -6,7 +6,48 @@ from spacy.lang.char_classes import ALPHA, ALPHA_LOWER, ALPHA_UPPER, CONCAT_QUOT
 
 import pickle
 from os.path import isfile, join
-from pprint import pprint
+
+
+def lazy_corpus_tokenization(documents):
+    """
+    Does the tokenization of the corpus in a lazy fashion, one document at a
+    time, when the document is needed.
+    Removes all the stop words, punctuation symbols and numbers in the
+    documents, lowercases the text and lemmatizes each token.
+    :param documents: An iterable sequence containing the texts of the documents
+    in the corpus.
+    :return: The sequence of the tokens of the documents in the corpus in a lazy
+    fashion.
+    """
+    # Tokenization of the corpus:
+    # Loading the English Package
+    nlp = spacy.load('en_core_web_md')
+
+    # Changing the infixes to accept words with hyphens (-), like 'covid-19'
+    infixes = (
+            LIST_ELLIPSES
+            + LIST_ICONS
+            + [
+                r"(?<=[0-9])[+\-\*^](?=[0-9-])",
+                r"(?<=[{al}{q}])\.(?=[{au}{q}])".format(
+                    al=ALPHA_LOWER, au=ALPHA_UPPER, q=CONCAT_QUOTES
+                ),
+                r"(?<=[{a}]),(?=[{a}])".format(a=ALPHA),
+                # r"(?<=[{a}])(?:{h})(?=[{a}])".format(a=ALPHA, h=HYPHENS),
+                r"(?<=[{a}0-9])[:<>=/](?=[{a}])".format(a=ALPHA),
+            ]
+    )
+    infix_re = compile_infix_regex(infixes)
+    nlp.tokenizer.infix_finditer = infix_re.finditer
+
+    # Iterating through the text of the documents and doing the tokenization
+    for text in documents:
+        text_doc = nlp(text, disable=['ner', 'texcat'])
+        text_tokens = [token.lemma_.lower().strip()
+                       for token in text_doc
+                       if (token.is_alpha and not token.is_stop)
+                       or (not token.is_alpha and is_acceptable(token.text))]
+        yield text_tokens
 
 
 def corpus_tokenization(documents, from_scratch=True, file_name='tokens.pickle'):
@@ -34,38 +75,8 @@ def corpus_tokenization(documents, from_scratch=True, file_name='tokens.pickle')
             corpus_tokens = pickle.load(file)
         return corpus_tokens
 
-    # Tokenization of the corpus:
-    # Loading the English Package
-    nlp = spacy.load('en_core_web_md')
-
-    # Changing the infixes to accept words with hyphens (-), like 'covid-19'
-    infixes = (
-            LIST_ELLIPSES
-            + LIST_ICONS
-            + [
-                r"(?<=[0-9])[+\-\*^](?=[0-9-])",
-                r"(?<=[{al}{q}])\.(?=[{au}{q}])".format(
-                    al=ALPHA_LOWER, au=ALPHA_UPPER, q=CONCAT_QUOTES
-                ),
-                r"(?<=[{a}]),(?=[{a}])".format(a=ALPHA),
-                # r"(?<=[{a}])(?:{h})(?=[{a}])".format(a=ALPHA, h=HYPHENS),
-                r"(?<=[{a}0-9])[:<>=/](?=[{a}])".format(a=ALPHA),
-            ]
-    )
-    infix_re = compile_infix_regex(infixes)
-    nlp.tokenizer.infix_finditer = infix_re.finditer
-
     # Creating a list of lists containing the tokens of the documents
-    corpus_tokens = []
-
-    # Iterating through the text of the documents and doing the tokenization
-    for text in documents:
-        text_doc = nlp(text, disable=['ner', 'texcat'])
-        text_tokens = [token.lemma_.lower().strip()
-                       for token in text_doc
-                       if (token.is_alpha and not token.is_stop)
-                       or (not token.is_alpha and is_acceptable(token.text))]
-        corpus_tokens.append(text_tokens)
+    corpus_tokens = list(lazy_corpus_tokenization(documents))
 
     # Save the tokens of the corpus in a file:
     with open(tokens_path, 'wb') as file:
@@ -76,8 +87,9 @@ def corpus_tokenization(documents, from_scratch=True, file_name='tokens.pickle')
 
 def docs_tokenization(documents):
     """
-    Receive the texts of all the documents in the corpus, and
-    transform each text into an array of tokens.
+    A simple tokenization process.
+    Receive the texts of all the documents in the corpus, and transform each
+    text into an array of tokens.
     Removes all the stop words, punctuation symbols and numbers in the
     documents, lowercases the text and lemmatizes each token.
     :param documents: A sequence of the texts of all the documents in the corpus.
