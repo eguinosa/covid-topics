@@ -4,7 +4,7 @@ from os import listdir
 from os.path import isfile, join
 
 
-class DocumentsFiles:
+class DocumentsManager:
     """Class to manage the files of the documents in the corpus."""
 
     def __init__(self, dir_path='docs', file_ext=''):
