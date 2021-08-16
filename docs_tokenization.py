@@ -8,6 +8,41 @@ import pickle
 from os.path import isfile, join
 
 
+def corpus_tokenization(documents, from_scratch=True, file_name='tokens.pickle'):
+    """
+    Receives the texts from the documents in the corpus and creates, and
+    transforms each document into an array of tokens.
+    Removes all the stop words, punctuation symbols and numbers in the
+    documents, lowercases the text and lemmatizes each token.
+    :param documents: An iterable sequence containing the texts of the documents
+    in the corpus.
+    :param from_scratch: Bool to determine if we used a previously calculated
+    tokenization of the corpus, or if we start from scratch, even though we have
+    the result of the tokenization saved.
+    :param file_name: The name of the file where the tokens are or will be saved.
+    :return: The list of tokens for each of the documents in the corpus.
+    """
+    # The Location of the tokens:
+    tokens_path = join('data', file_name)
+
+    # Check if the user wants to use the saved tokens and the tokens are
+    # saved.
+    if not from_scratch and isfile(tokens_path):
+        # We use pickle to save and load the tokens.
+        with open(tokens_path, 'rb') as file:
+            corpus_tokens = pickle.load(file)
+        return corpus_tokens
+
+    # Creating a list of lists containing the tokens of the documents
+    corpus_tokens = list(lazy_corpus_tokenization(documents))
+
+    # Save the tokens of the corpus in a file:
+    with open(tokens_path, 'wb') as file:
+        pickle.dump(corpus_tokens, file)
+
+    return corpus_tokens
+
+
 def lazy_corpus_tokenization(documents):
     """
     Does the tokenization of the corpus in a lazy fashion, one document at a
@@ -48,41 +83,6 @@ def lazy_corpus_tokenization(documents):
                        if (token.is_alpha and not token.is_stop)
                        or (not token.is_alpha and is_acceptable(token.text))]
         yield text_tokens
-
-
-def corpus_tokenization(documents, from_scratch=True, file_name='tokens.pickle'):
-    """
-    Receives the texts from the documents in the corpus and creates, and
-    transforms each document into an array of tokens.
-    Removes all the stop words, punctuation symbols and numbers in the
-    documents, lowercases the text and lemmatizes each token.
-    :param documents: An iterable sequence containing the texts of the documents
-    in the corpus.
-    :param from_scratch: Bool to determine if we used a previously calculated
-    tokenization of the corpus, or if we start from scratch, even though we have
-    the result of the tokenization saved.
-    :param file_name: The name of the file where the tokens are or will be saved.
-    :return: The list of tokens for each of the documents in the corpus.
-    """
-    # The Location of the tokens:
-    tokens_path = join('data', file_name)
-
-    # Check if the user wants to use the saved tokens and the tokens are
-    # saved.
-    if not from_scratch and isfile(tokens_path):
-        # We use pickle to save and load the tokens.
-        with open(tokens_path, 'rb') as file:
-            corpus_tokens = pickle.load(file)
-        return corpus_tokens
-
-    # Creating a list of lists containing the tokens of the documents
-    corpus_tokens = list(lazy_corpus_tokenization(documents))
-
-    # Save the tokens of the corpus in a file:
-    with open(tokens_path, 'wb') as file:
-        pickle.dump(corpus_tokens, file)
-
-    return corpus_tokens
 
 
 def docs_tokenization(documents):
