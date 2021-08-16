@@ -70,8 +70,10 @@ class CorpusTokenizer:
         Load, one at a time, the saved tokens of the documents.
         :return: a sequence of the tokens of the documents in the corpus.
         """
+        # Iterate through the names of the files where the tokens are stored
         for file_name in self.tokens_info.values():
             tokens_path = join(self._tokens_folder, file_name)
+            # Load the tokens belonging to one of the documents
             with open(tokens_path, 'rb') as file:
                 doc_tokens = pickle.load(file)
             yield doc_tokens
