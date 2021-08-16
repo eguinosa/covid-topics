@@ -3,9 +3,12 @@
 import time
 from pprint import pprint
 
-from docs_stream import DocumentsFiles
-from docs_tokenization import docs_tokenization
-from topic_processing import topic_processing
+from gensim.corpora import Dictionary
+from gensim.models import LdaModel
+
+from docs_stream import DocumentsManager
+from corpus_tokenizer import CorpusTokenizer
+from docs_tokenization import corpus_tokenization
 
 
 def run_time(time_diff):
@@ -21,7 +24,7 @@ def run_time(time_diff):
     seconds = int(time_diff - hours * 3600 - minutes * 60)
     milliseconds = int((time_diff - int(time_diff)) * 1000)
 
-    return f'{hours} h : {minutes} min : {seconds} seg : {milliseconds} mill'
+    return f'{hours} h : {minutes} min : {seconds} sec : {milliseconds} mill'
 
 
 if __name__ == '__main__':
@@ -31,20 +34,44 @@ if __name__ == '__main__':
     # Load all the documents about Covid-19 from the Wikipedia in the
     # docs/ folder.
     print("\nLoading Documents.")
-    doc_files = DocumentsFiles()
-    doc_texts = doc_files.documents_texts()
+    doc_files = DocumentsManager()
 
     # Tokenize all the Documents loaded using Spacy
     print("Tokenizing all the documents.")
-    docs_tokens = docs_tokenization(doc_texts)
+    # tokenizer = CorpusTokenizer(doc_files.documents_texts())
+    corpus_tokens = corpus_tokenization(doc_files.documents_texts())
 
-    # Create the dictionary, transform the documents in Bag-of-Words
-    # and create LDA Model
+    # Create the dictionary
+    dictionary = Dictionary(corpus_tokens)
+
+    # Bag-of-words representation of the documents
+    corpus_bow = [dictionary.doc2bow(doc) for doc in corpus_tokens]
+
+    # Train the LDA Model
     print("Training the LDA Model.")
-    topic_process = topic_processing(docs_tokens)
-    corpus_bow = topic_process['corpus_bow']
-    dictionary = topic_process['dictionary']
-    lda_model = topic_process['lda_model']
+
+    # Set training parameters.
+    num_topics = 4
+    chunksize = 20
+    passes = 10
+    iterations = 400
+    eval_every = None
+
+    # Make a index to word dictionary.
+    temp = dictionary[0]  # This is only to "load" the dictionary.
+    id2word = dictionary.id2token
+
+    lda_model = LdaModel(
+        corpus=corpus_bow,
+        id2word=id2word,
+        chunksize=chunksize,
+        alpha='auto',
+        eta='auto',
+        iterations=iterations,
+        num_topics=num_topics,
+        passes=passes,
+        eval_every=eval_every
+    )
 
     # Print Corpus Information
     print(f"\nNumber of documents: {len(doc_files.documents)}")

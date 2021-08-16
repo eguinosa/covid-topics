@@ -5,10 +5,26 @@ from spacy.util import compile_infix_regex
 from spacy.lang.char_classes import ALPHA, ALPHA_LOWER, ALPHA_UPPER, CONCAT_QUOTES, LIST_ELLIPSES, LIST_ICONS
 
 import pickle
-from os.path import isfile, join
+from os import mkdir
+from os.path import isdir, isfile, join
 
 
-def corpus_tokenization(documents, from_scratch=True, file_name='tokens.pickle'):
+def saved_tokenization(data_dir='data', file_name='tokens.pickle'):
+    """
+    Check if the tokens from a previous tokenization process where saved so you
+    can use this data without going through all the tokenization again.
+    :param data_dir: The folder where the data of the project is saved.
+    :param file_name: The name of the file where the tokens are or will be saved.
+    :return: A bool representing if the tokens for the corpus are saved or not.
+    """
+    # Create the full path of the tokens file
+    tokens_path = join(data_dir, file_name)
+    # Check if the tokens exist
+    result = isfile(tokens_path)
+    return result
+
+
+def corpus_tokenization(documents, from_scratch=True, data_dir='data', file_name='tokens.pickle'):
     """
     Receives the texts from the documents in the corpus and creates, and
     transforms each document into an array of tokens.
@@ -19,15 +35,24 @@ def corpus_tokenization(documents, from_scratch=True, file_name='tokens.pickle')
     :param from_scratch: Bool to determine if we used a previously calculated
     tokenization of the corpus, or if we start from scratch, even though we have
     the result of the tokenization saved.
+    :param data_dir: The folder where the data of the project is saved.
     :param file_name: The name of the file where the tokens are or will be saved.
     :return: The list of tokens for each of the documents in the corpus.
     """
+    # Check if the folder 'data' exists, and in case the folder doesn't exist
+    # create it.
+    if not isdir(data_dir):
+        mkdir(data_dir)
+
     # The Location of the tokens:
-    tokens_path = join('data', file_name)
+    tokens_path = join(data_dir, file_name)
 
     # Check if the user wants to use the saved tokens and the tokens are
     # saved.
-    if not from_scratch and isfile(tokens_path):
+    if not from_scratch:
+        if not isfile(tokens_path):
+            raise Exception("There are no tokens information saved for this"
+                            "corpus.")
         # We use pickle to save and load the tokens.
         with open(tokens_path, 'rb') as file:
             corpus_tokens = pickle.load(file)
