@@ -23,8 +23,8 @@ class DocumentsManager:
         # Iterate through all the documents in the given directory and save the
         # locations of the documents.
         for doc_name in listdir(dir_path):
-            if isfile(join(dir_path, doc_name)) and doc_name.endswith(file_ext):
-                doc_path = join(dir_path, doc_name)
+            doc_path = join(dir_path, doc_name)
+            if isfile(doc_path) and doc_name.endswith(file_ext):
                 self.documents[doc_name] = doc_path
 
     def documents_texts(self):
