@@ -105,8 +105,9 @@ def lazy_corpus_tokenization(documents):
         text_doc = nlp(text, disable=['ner', 'texcat'])
         text_tokens = [token.lemma_.lower().strip()
                        for token in text_doc
-                       if (token.is_alpha and not token.is_stop)
-                       or (not token.is_alpha and is_acceptable(token.text))]
+                       if len(token.text) > 1
+                       and ((token.is_alpha and not token.is_stop)
+                       or (not token.is_alpha and is_acceptable(token.text)))]
         yield text_tokens
 
 
