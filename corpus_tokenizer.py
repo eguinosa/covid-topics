@@ -12,11 +12,6 @@ class CorpusTokenizer:
     Class to tokenize the documents of a corpus and save the results in case
     they are needed later.
     """
-    # Save the location of the tokens for static methods.
-    tokens_folder = 'data/corpus_tokens'
-
-    # Save index name for static methods.
-    index_name = 'index.pickle'
 
     def __init__(self, documents, _use_saved=False):
         """
@@ -31,23 +26,23 @@ class CorpusTokenizer:
         if we have the result of the tokenization saved.
         """
         # The Location of the data of the program
-        self._data_folder = 'data'
+        self.data_folder = 'data'
         # Create data folder if it doesn't exist
-        if not isdir(self._data_folder):
-            mkdir(self._data_folder)
+        if not isdir(self.data_folder):
+            mkdir(self.data_folder)
 
         # The Location of the Tokens
-        self._tokens_folder = join(self._data_folder, 'corpus_tokens')
+        self.tokens_folder = join(self.data_folder, 'corpus_tokens')
         # Create the Tokens folder if it doesn't exist
-        if not isdir(self._tokens_folder):
-            mkdir(self._tokens_folder)
+        if not isdir(self.tokens_folder):
+            mkdir(self.tokens_folder)
 
         # The location of the index of the tokens
-        self._index_name = 'index.pickle'
+        self.index_name = 'index.pickle'
 
         # Check if the user wants to use the saved tokens
         if _use_saved:
-            index_path = join(self._tokens_folder, self._index_name)
+            index_path = join(self.tokens_folder, self.index_name)
             # Check if we saved the tokens for this corpus
             if not isfile(index_path):
                 raise Exception("No tokens previously saved for this corpus.")
@@ -71,38 +66,38 @@ class CorpusTokenizer:
                 # Save the name in a dictionary for later use
                 self.tokens_info[doc_id] = doc_name
                 # Save the tokenization in a file.
-                file_path = join(self._tokens_folder, doc_name)
+                file_path = join(self.tokens_folder, doc_name)
                 with open(file_path, 'wb') as file:
                     pickle.dump(doc_tokens, file)
 
             # Save the index of the tokens
-            index_path = join(self._tokens_folder, self._index_name)
+            index_path = join(self.tokens_folder, self.index_name)
             with open(index_path, 'wb') as file:
                 pickle.dump(self.tokens_info, file)
 
     def corpus_tokens(self):
         """
-        Load, one at a time, the saved tokens of the documents.
+        Load, one at a time, the saved tokenized Documents.
         :return: a sequence of the tokens of the documents in the corpus.
         """
         # Iterate through the names of the files where the tokens are stored
         for file_name in self.tokens_info.values():
-            tokens_path = join(self._tokens_folder, file_name)
+            tokens_path = join(self.tokens_folder, file_name)
             # Load the tokens belonging to one of the documents
             with open(tokens_path, 'rb') as file:
                 doc_tokens = pickle.load(file)
             yield doc_tokens
 
     @staticmethod
-    def saved_tokens():
+    def are_tokens_saved():
         """
         Check if the tokens from a previos tokenizer are saved and ready to
         be used.
-        :return: bool representing if we have the tokens or the corpus saved or
+        :return: Bool representing if we have the tokens or the corpus saved or
         not.
         """
-        tokens_folder = CorpusTokenizer.tokens_folder
-        index_name = CorpusTokenizer.index_name
+        tokens_folder = 'data/corpus_tokens'
+        index_name = 'index.pickle'
         index_path = join(tokens_folder, index_name)
 
         # Check that the index file exists.
