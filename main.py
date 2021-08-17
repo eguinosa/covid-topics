@@ -8,7 +8,7 @@ from gensim.models import LdaModel
 
 from docs_stream import DocumentsManager
 from corpus_tokenizer import CorpusTokenizer
-from docs_tokenization import corpus_tokenization
+from topic_processing import TopicManager
 
 
 def run_time(time_diff):
@@ -38,14 +38,18 @@ if __name__ == '__main__':
 
     # Tokenize all the Documents loaded using Spacy
     print("Tokenizing all the documents.")
-    # tokenizer = CorpusTokenizer(doc_files.documents_texts())
-    corpus_tokens = corpus_tokenization(doc_files.documents_texts())
+    if CorpusTokenizer.are_tokens_saved():
+        print("Loading saved tokenizer.")
+        tokenizer = CorpusTokenizer.saved_tokenizer()
+    else:
+        tokenizer = CorpusTokenizer(doc_files.documents_texts())
 
-    # Create the dictionary
-    dictionary = Dictionary(corpus_tokens)
-
-    # Bag-of-words representation of the documents
-    corpus_bow = [dictionary.doc2bow(doc) for doc in corpus_tokens]
+    # Creating the Dictionary and the Corpus Bag-of-Words
+    print("Creating the Dictionary and the Corpus Bag-of-Words.")
+    if TopicManager.is_topic_manager_saved():
+        topic_manager = TopicManager.saved_topic_manager()
+    else:
+        topic_manager = TopicManager(tokenizer)
 
     # Train the LDA Model
     print("Training the LDA Model.")
@@ -57,28 +61,19 @@ if __name__ == '__main__':
     iterations = 400
     eval_every = None
 
-    # Make a index to word dictionary.
-    temp = dictionary[0]  # This is only to "load" the dictionary.
-    id2word = dictionary.id2token
-
-    lda_model = LdaModel(
-        corpus=corpus_bow,
-        id2word=id2word,
-        chunksize=chunksize,
-        alpha='auto',
-        eta='auto',
-        iterations=iterations,
-        num_topics=num_topics,
-        passes=passes,
-        eval_every=eval_every
-    )
+    # Create and train the LDA Model
+    lda_model = topic_manager.lda_model(num_topics,
+                                        chunksize,
+                                        passes,
+                                        iterations,
+                                        eval_every)
 
     # Print Corpus Information
     print(f"\nNumber of documents: {len(doc_files.documents)}")
-    print(f"Number of unique tokens: {len(dictionary)}")
+    print(f"Number of unique tokens: {len(topic_manager.dictionary)}")
 
     # Printing Topics
-    top_topics = lda_model.top_topics(corpus_bow)
+    top_topics = lda_model.top_topics(topic_manager.corpus_bow)
 
     # Average topic coherence
     average_coherence = sum([topic[1] for topic in top_topics]) / len(top_topics)
