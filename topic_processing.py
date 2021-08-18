@@ -13,6 +13,13 @@ class TopicManager:
     """
     Class to manage all the need processing using the gensim package.
     """
+    # Location of the class data
+    _data_folder = 'data'
+    _dict_file = 'dictionary.pickle'
+    _corpus_file = 'corpus_bow.mm'
+    _lda_folder = 'lda_models'
+    _lda_index_file = 'index_lda_model.pickle'
+    _lda_prefix = 'lda_model_'
 
     def __init__(self, tokenizer, _use_saved=False):
         """
@@ -21,18 +28,11 @@ class TopicManager:
         :param tokenizer: A CorpusTokenizer instance to get the tokens of
         the documents in a lazy way, document per document.
         """
-        # Location of the information
-        self.data_folder = 'data'
-        self.dict_file = 'dictionary.pickle'
-        self.corpus_file = 'corpus_bow.mm'
-        self.lda_folder = 'lda_models'
-        self.lda_index_file = 'index_lda_model.pickle'
-        self.lda_prefix = 'lda_model_'
 
         # Loading the saved TopicManager
         if _use_saved:
             # Check if the dictionary file exists.
-            dict_path = join(self.data_folder, self.dict_file)
+            dict_path = join(self._data_folder, self._dict_file)
             if not isfile(dict_path):
                 raise Exception("The dictionary of the TopicManager was not"
                                 " saved.")
@@ -41,7 +41,7 @@ class TopicManager:
                 self.dictionary = pickle.load(file)
 
             # Check if the corpus bag-of-word file exists.
-            corpus_path = join(self.data_folder, self.corpus_file)
+            corpus_path = join(self._data_folder, self._corpus_file)
             if not isfile(corpus_path):
                 raise Exception("The Corpus Bag-of-Words of the TopicManager"
                                 " was not saved.")
@@ -50,8 +50,8 @@ class TopicManager:
             self.corpus_bow = corpora.MmCorpus(corpus_full_path)
 
             # Check if the LDA Model index file exists.
-            lda_index_path = join(self.data_folder, self.lda_folder,
-                                  self.lda_index_file)
+            lda_index_path = join(self._data_folder, self._lda_folder,
+                                  self._lda_index_file)
             if not isfile(lda_index_path):
                 raise Exception("The LDA Model Index of the TopicManager was not"
                                 " saved.")
@@ -62,24 +62,28 @@ class TopicManager:
         # Create the TopicManager from scratch
         else:
             # Create data folder if it doesn't exist
-            if not isdir(self.data_folder):
-                mkdir(self.data_folder)
+            if not isdir(self._data_folder):
+                mkdir(self._data_folder)
 
             # Create LDA Model folder if it doesn't exist
-            lda_folder_path = join(self.data_folder, self.lda_folder)
+            lda_folder_path = join(self._data_folder, self._lda_folder)
             if not isdir(lda_folder_path):
                 mkdir(lda_folder_path)
 
             # Create & Save the dictionary
             self.dictionary = Dictionary(tokenizer.corpus_tokens())
-            dict_path = join(self.data_folder, self.dict_file)
+            # Filter out words that occur less than 2 documents, or more than
+            # 75% of the documents.
+            self.dictionary.filter_extremes(no_below=2, no_above=0.75)
+            # Save the dictionary
+            dict_path = join(self._data_folder, self._dict_file)
             with open(dict_path, 'wb') as file:
                 pickle.dump(self.dictionary, file)
 
             # Create & Save the corpus bag-of-words representation, using a
             # lazy representation of the corpus bag-of-words, so we only have
             # one document bag-of-words at a time in memory.
-            corpus_path = join(self.data_folder, self.corpus_file)
+            corpus_path = join(self._data_folder, self._corpus_file)
             corpus_full_path = abspath(corpus_path)
             corpora.MmCorpus.serialize(corpus_full_path,
                                        self._lazy_corpus_bow(tokenizer))
@@ -88,17 +92,17 @@ class TopicManager:
             # Create an index to keep track of the lda models that will be
             # created and save it.
             self.lda_index = {}
-            lda_index_path = join(self.data_folder, self.lda_folder,
-                                  self.lda_index_file)
+            lda_index_path = join(self._data_folder, self._lda_folder,
+                                  self._lda_index_file)
             with open(lda_index_path, 'wb') as file:
                 pickle.dump(self.lda_index, file)
 
             # Delete all the LDA Models created for a previous TopicManager
-            lda_folder_path = join(self.data_folder, self.lda_folder)
+            lda_folder_path = join(self._data_folder, self._lda_folder)
             for file_name in listdir(lda_folder_path):
                 lda_file_path = join(lda_folder_path, file_name)
                 # Check is the name of the file is formatted as a lda model.
-                if (isfile(lda_file_path) and file_name.startswith(self.lda_prefix)
+                if (isfile(lda_file_path) and file_name.startswith(self._lda_prefix)
                         and file_name.endswith('.pickle')):
                     # Once we confirm it is an LDA Model, delete the file
                     remove(lda_file_path)
@@ -122,7 +126,7 @@ class TopicManager:
         if lda_params in self.lda_index:
             # Get the name of the file where the LDA Model is saved.
             lda_model_file = self.lda_index[lda_params]
-            lda_model_path = join(self.data_folder, self.lda_folder,
+            lda_model_path = join(self._data_folder, self._lda_folder,
                                   lda_model_file)
 
             # Load the LDA Model
@@ -153,42 +157,36 @@ class TopicManager:
 
             # Save the LDA Model
             lda_id = len(self.lda_index) + 1
-            lda_model_name = self.lda_prefix + str(lda_id) + '.pickle'
+            lda_model_name = self._lda_prefix + str(lda_id) + '.pickle'
             # Save the name in the lda_index
             self.lda_index[lda_params] = lda_model_name
             # Save in the LDA Model in a file
-            lda_model_path = join(self.data_folder, self.lda_folder,
+            lda_model_path = join(self._data_folder, self._lda_folder,
                                   lda_model_name)
             with open(lda_model_path, 'wb') as file:
                 pickle.dump(lda_model, file)
 
             # Update the value of the Index of the LDA Model
-            lda_index_path = join(self.data_folder, self.lda_folder,
-                                  self.lda_index_file)
+            lda_index_path = join(self._data_folder, self._lda_folder,
+                                  self._lda_index_file)
             with open(lda_index_path, 'wb') as file:
                 pickle.dump(self.lda_index, file)
 
             # Return the calculated LDA Model
             return lda_model
 
-    @staticmethod
-    def is_topic_manager_saved():
+    @classmethod
+    def is_topic_manager_saved(cls):
         """
         Checks is the data from the TopicManager is saved and ready to be used.
         :return: Bool representing if we can load the saved TopicManager or we
         need to create it from scratch.
         """
-        # The names of the files where the information is stored
-        data_folder = 'data'
-        dict_file = 'dictionary.pickle'
-        corpus_file = 'corpus_bow.mm'
-        lda_folder = 'lda_models'
-        lda_index_file = 'index_lda_model.pickle'
 
         # Creating the paths
-        dict_path = join(data_folder, dict_file)
-        corpus_path = join(data_folder, corpus_file)
-        lda_index_path = join(data_folder, lda_folder, lda_index_file)
+        dict_path = join(cls._data_folder, cls._dict_file)
+        corpus_path = join(cls._data_folder, cls._corpus_file)
+        lda_index_path = join(cls._data_folder, cls._lda_folder, cls._lda_index_file)
 
         # Check the Dictionary file
         if not isfile(dict_path):
@@ -212,5 +210,5 @@ class TopicManager:
         TopicManager
         :return: A TopicManager
         """
-
+        # Create the TopicManager from the saved files and return it.
         return cls(None, _use_saved=True)
