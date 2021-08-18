@@ -4,6 +4,8 @@ import pickle
 from os import mkdir
 from os.path import isdir, isfile, join
 
+from gensim.models import Phrases
+
 from docs_tokenization import lazy_corpus_tokenization
 
 
@@ -12,6 +14,11 @@ class CorpusTokenizer:
     Class to tokenize the documents of a corpus and save the results in case
     they are needed later.
     """
+    # Location of the class data
+    _data_folder = 'data'
+    _tokens_folder = 'docs_tokenized'
+    _tokens_prefix = 'doc_tokens_'
+    _index_name = 'index.pickle'
 
     def __init__(self, documents, _use_saved=False):
         """
@@ -25,24 +32,20 @@ class CorpusTokenizer:
         calculated tokenization of the corpus, or if we start from scratch, even
         if we have the result of the tokenization saved.
         """
-        # The Location of the data of the program
-        self.data_folder = 'data'
-        # Create data folder if it doesn't exist
-        if not isdir(self.data_folder):
-            mkdir(self.data_folder)
+        # The path of the folder for the tokenized documents.
+        tokens_folder_path = join(self._data_folder, self._tokens_folder)
 
-        # The Location of the Tokens
-        self.tokens_folder = join(self.data_folder, 'corpus_tokens')
-        # Create the Tokens folder if it doesn't exist
-        if not isdir(self.tokens_folder):
-            mkdir(self.tokens_folder)
+        # Create data folder if it doesn't exist.
+        if not isdir(self._data_folder):
+            mkdir(self._data_folder)
 
-        # The location of the index of the tokens
-        self.index_name = 'index.pickle'
+        # Create tokens folder if it doesn't exist.
+        if not isdir(tokens_folder_path):
+            mkdir(tokens_folder_path)
 
         # Check if the user wants to use the saved tokens
         if _use_saved:
-            index_path = join(self.tokens_folder, self.index_name)
+            index_path = join(tokens_folder_path, self._index_name)
             # Check if we saved the tokens for this corpus
             if not isfile(index_path):
                 raise Exception("No tokens previously saved for this corpus.")
@@ -54,26 +57,47 @@ class CorpusTokenizer:
         else:
             # Initialize values
             self.tokens_info = {}
-            doc_id = 0
-            base_name = 'doc_tokens_'
 
-            # Do a lazy tokenization and save the results
+            # Do the lazy tokenization and save the results
             for doc_tokens in lazy_corpus_tokenization(documents):
                 # Create the name of the file where the tokenization will be
                 # saved
-                doc_id += 1
-                doc_name = base_name + str(doc_id) + '.pickle'
-                # Save the name in a dictionary for later use
+                doc_id = len(self.tokens_info) + 1
+                doc_name = self._tokens_prefix + str(doc_id) + '.pickle'
+                # Save the name in a dictionary for later use.
                 self.tokens_info[doc_id] = doc_name
                 # Save the tokenization in a file.
-                file_path = join(self.tokens_folder, doc_name)
-                with open(file_path, 'wb') as file:
-                    pickle.dump(doc_tokens, file)
+                self._save_document(doc_name, doc_tokens)
 
-            # Save the index of the tokens
-            index_path = join(self.tokens_folder, self.index_name)
+            # Save the index of the tokens.
+            index_path = join(tokens_folder_path, self._index_name)
             with open(index_path, 'wb') as file:
                 pickle.dump(self.tokens_info, file)
+
+            # Find the Phrases in the documents and add them to their
+            # tokenization:
+            # First -> Train the Phrase Model with our corpus.
+            phrase_model = Phrases(self.corpus_tokens())
+
+            # Export the trained model to use less RAM, faster processing.
+            # The Model updates are no longer possible.
+            phrase_model = phrase_model.freeze()
+
+            # Add their Bigrams, Trigrams, etc... to each of the tokenized
+            # documents.
+            for file_name in self.tokens_info.values():
+                # Load the list of tokens in the document.
+                doc_tokens = self._load_document(file_name)
+
+                # Apply the model to each document to find the phrases they have
+                for token in phrase_model[doc_tokens]:
+                    # Check if the current token is a 'phrase'
+                    if '_' in token:
+                        # Add the new phrase to the tokens of the document.
+                        doc_tokens.append(token)
+
+                # Save the changes made to the current tokenized document.
+                self._save_document(file_name, doc_tokens)
 
     def corpus_tokens(self):
         """
@@ -82,23 +106,57 @@ class CorpusTokenizer:
         """
         # Iterate through the names of the files where the tokens are stored
         for file_name in self.tokens_info.values():
-            tokens_path = join(self.tokens_folder, file_name)
-            # Load the tokens belonging to one of the documents
-            with open(tokens_path, 'rb') as file:
-                doc_tokens = pickle.load(file)
+            # Load each tokenized document and return it one at a time.
+            doc_tokens = self._load_document(file_name)
             yield doc_tokens
 
-    @staticmethod
-    def are_tokens_saved():
+    def _load_document(self, file_name):
+        """
+        Load the file of a tokenized document with the given file name.
+        :param file_name: The name of the file where the tokenized document is
+        saved.
+        :return: The Document saved in the file with the given name.
+        """
+        # The path of the folder for the tokenized documents.
+        tokens_folder_path = join(self._data_folder, self._tokens_folder)
+        # Create the full path of the file
+        document_path = join(tokens_folder_path, file_name)
+
+        # Load the tokens list of the document.
+        with open(document_path, 'rb') as file:
+            doc_tokens = pickle.load(file)
+
+        # Return the list of tokens
+        return doc_tokens
+
+    def _save_document(self, file_name, doc_tokens):
+        """
+        Save a tokenized document to a file with the given name.
+        :param file_name: The name of the file where the tokenized document will
+        be saved.
+        :param doc_tokens: The tokenized document that will be saved to a file.
+        """
+        # The path of the folder for the tokenized documents.
+        tokens_folder_path = join(self._data_folder, self._tokens_folder)
+        # The path of the file where the document will be saved.
+        file_path = join(tokens_folder_path, file_name)
+
+        # Save the tokenized document.
+        with open(file_path, 'wb') as file:
+            pickle.dump(doc_tokens, file)
+
+    @classmethod
+    def are_tokens_saved(cls):
         """
         Check if the tokens from a previos tokenizer are saved and ready to
         be used.
         :return: Bool representing if we have the tokens or the corpus saved or
         not.
         """
-        tokens_folder = 'data/corpus_tokens'
-        index_name = 'index.pickle'
-        index_path = join(tokens_folder, index_name)
+        # The path of the folder for the tokenized documents.
+        tokens_folder_path = join(cls._data_folder, cls._tokens_folder)
+        # Location of the index file
+        index_path = join(tokens_folder_path, cls._index_name)
 
         # Check that the index file exists.
         if not isfile(index_path):
