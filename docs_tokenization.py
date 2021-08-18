@@ -9,19 +9,52 @@ from os import mkdir
 from os.path import isdir, isfile, join
 
 
-def saved_tokenization(data_dir='data', file_name='tokens.pickle'):
+def lazy_corpus_tokenization(documents):
     """
-    Check if the tokens from a previous tokenization process where saved so you
-    can use this data without going through all the tokenization again.
-    :param data_dir: The folder where the data of the project is saved.
-    :param file_name: The name of the file where the tokens are or will be saved.
-    :return: A bool representing if the tokens for the corpus are saved or not.
+    Does the tokenization of the corpus in a lazy fashion, one document at a
+    time, when the document is needed.
+    Removes all the stop words, punctuation symbols and numbers in the
+    documents, lowercases the text and lemmatizes each token.
+    :param documents: An iterable sequence containing the texts of the documents
+    in the corpus.
+    :return: The sequence of the tokens of the documents in the corpus in a lazy
+    fashion.
     """
-    # Create the full path of the tokens file
-    tokens_path = join(data_dir, file_name)
-    # Check if the tokens exist
-    result = isfile(tokens_path)
-    return result
+    # Tokenization of the corpus:
+    # Loading the English Package
+    nlp = spacy.load('en_core_web_md')
+
+    # Changing the infixes to accept words with hyphens (-), like 'covid-19'
+    infixes = (
+            LIST_ELLIPSES
+            + LIST_ICONS
+            + [
+                r"(?<=[0-9])[+\-\*^](?=[0-9-])",
+                r"(?<=[{al}{q}])\.(?=[{au}{q}])".format(
+                    al=ALPHA_LOWER, au=ALPHA_UPPER, q=CONCAT_QUOTES
+                ),
+                r"(?<=[{a}]),(?=[{a}])".format(a=ALPHA),
+                # r"(?<=[{a}])(?:{h})(?=[{a}])".format(a=ALPHA, h=HYPHENS),
+                r"(?<=[{a}0-9])[:<>=/](?=[{a}])".format(a=ALPHA),
+            ]
+    )
+    infix_re = compile_infix_regex(infixes)
+    nlp.tokenizer.infix_finditer = infix_re.finditer
+
+    # Iterating through the text of the documents and doing the tokenization
+    for text in documents:
+        # Disable 'ner' and 'textcat' for faster processing
+        text_doc = nlp(text, disable=['ner', 'texcat'])
+
+        # Lemmatize the tokens, lower the characters, and take only the tokens
+        # with at least one alphabetic character. (food, covid-19, R2, etc..)
+        text_tokens = [token.lemma_.lower().strip()
+                       for token in text_doc
+                       if len(token.text) > 1
+                       and ((token.is_alpha and not token.is_stop)
+                       or (not token.is_alpha and is_acceptable(token.text)))]
+        # Returns one tokenized document at a time.
+        yield text_tokens
 
 
 def corpus_tokenization(documents, from_scratch=True, data_dir='data', file_name='tokens.pickle'):
@@ -68,47 +101,19 @@ def corpus_tokenization(documents, from_scratch=True, data_dir='data', file_name
     return corpus_tokens
 
 
-def lazy_corpus_tokenization(documents):
+def saved_tokenization(data_dir='data', file_name='tokens.pickle'):
     """
-    Does the tokenization of the corpus in a lazy fashion, one document at a
-    time, when the document is needed.
-    Removes all the stop words, punctuation symbols and numbers in the
-    documents, lowercases the text and lemmatizes each token.
-    :param documents: An iterable sequence containing the texts of the documents
-    in the corpus.
-    :return: The sequence of the tokens of the documents in the corpus in a lazy
-    fashion.
+    Check if the tokens from a previous tokenization process where saved so you
+    can use this data without going through all the tokenization again.
+    :param data_dir: The folder where the data of the project is saved.
+    :param file_name: The name of the file where the tokens are or will be saved.
+    :return: A bool representing if the tokens for the corpus are saved or not.
     """
-    # Tokenization of the corpus:
-    # Loading the English Package
-    nlp = spacy.load('en_core_web_md')
-
-    # Changing the infixes to accept words with hyphens (-), like 'covid-19'
-    infixes = (
-            LIST_ELLIPSES
-            + LIST_ICONS
-            + [
-                r"(?<=[0-9])[+\-\*^](?=[0-9-])",
-                r"(?<=[{al}{q}])\.(?=[{au}{q}])".format(
-                    al=ALPHA_LOWER, au=ALPHA_UPPER, q=CONCAT_QUOTES
-                ),
-                r"(?<=[{a}]),(?=[{a}])".format(a=ALPHA),
-                # r"(?<=[{a}])(?:{h})(?=[{a}])".format(a=ALPHA, h=HYPHENS),
-                r"(?<=[{a}0-9])[:<>=/](?=[{a}])".format(a=ALPHA),
-            ]
-    )
-    infix_re = compile_infix_regex(infixes)
-    nlp.tokenizer.infix_finditer = infix_re.finditer
-
-    # Iterating through the text of the documents and doing the tokenization
-    for text in documents:
-        text_doc = nlp(text, disable=['ner', 'texcat'])
-        text_tokens = [token.lemma_.lower().strip()
-                       for token in text_doc
-                       if len(token.text) > 1
-                       and ((token.is_alpha and not token.is_stop)
-                       or (not token.is_alpha and is_acceptable(token.text)))]
-        yield text_tokens
+    # Create the full path of the tokens file
+    tokens_path = join(data_dir, file_name)
+    # Check if the tokens exist
+    result = isfile(tokens_path)
+    return result
 
 
 def docs_tokenization(documents):
