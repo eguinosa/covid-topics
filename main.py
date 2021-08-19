@@ -3,9 +3,6 @@
 import time
 from pprint import pprint
 
-from gensim.corpora import Dictionary
-from gensim.models import LdaModel
-
 from docs_stream import DocumentsManager
 from corpus_tokenizer import CorpusTokenizer
 from topic_processing import TopicManager
