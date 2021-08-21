@@ -1,51 +1,68 @@
 # Gelin Eguinosa Rosique
 
-import time
+from sys import exit
 from pprint import pprint
 
 from docs_stream import DocumentsManager
 from corpus_tokenizer import CorpusTokenizer
 from topic_processing import TopicManager
-
-
-def run_time(time_diff):
-    """
-    Transforms the elapsed time from the start of the program to a new format
-    in hours, minutes and seconds.
-    :param time_diff: The time difference from the start to the end of the
-    program.
-    :return: A string containing the elapsed time in <hours:minutes:seconds>
-    """
-    hours = int(time_diff / 3600)
-    minutes = int((time_diff - hours * 3600) / 60)
-    seconds = int(time_diff - hours * 3600 - minutes * 60)
-    milliseconds = int((time_diff - int(time_diff)) * 1000)
-
-    return f'{hours} h : {minutes} min : {seconds} sec : {milliseconds} mill'
+from time_keeper import TimeKeeper
 
 
 if __name__ == '__main__':
     # To record the runtime of the program
-    start_time = time.time()
+    stopwatch = TimeKeeper()
 
-    # Load all the documents about Covid-19 from the Wikipedia in the
-    # docs/ folder.
+    # First, check if the documents are available.
+    if not DocumentsManager.documents_available():
+        print("\nNo documents where found in the 'docs' folder.")
+        exit()
+    # Load the documents inside the 'docs' folder.
     print("\nLoading Documents.")
     doc_files = DocumentsManager()
 
     # Tokenize all the Documents loaded using Spacy
-    print("Tokenizing all the documents.")
+    print("\nTokenizing the documents:")
+    # Check if the user wants to use the saved tokenized documents in case they
+    # are available.
+    use_saved_info = False
     if CorpusTokenizer.are_tokens_saved():
-        print("Loading saved tokenizer.")
+        print("There are saved tokenized documents available.")
+        # Check what the user wants to do, and stop recording the time while
+        # we wait for the answer
+        stopwatch.pause()
+        answer = input("Would you like to use them? (yes/no) ")
+        stopwatch.restart()
+        if answer.lower().strip() in ['yes', 'y']:
+            use_saved_info = True
+    # Load or Create the CorpusTokenizer
+    if use_saved_info:
+        print("Loading the saved tokenized documents.")
         tokenizer = CorpusTokenizer.saved_tokenizer()
     else:
+        print("Tokenizing the documents from scratch.")
         tokenizer = CorpusTokenizer(doc_files.documents_texts())
 
     # Creating the Dictionary and the Corpus Bag-of-Words
-    print("Creating the Dictionary and the Corpus Bag-of-Words.")
+    print("\nCreating the Dictionary and the Corpus Bag-of-Words.")
+    # Check if the user wants to use the saved dictionary and corpus
+    # bag-of-words if they are available.
+    use_saved_info = False
     if TopicManager.is_topic_manager_saved():
+        print("The dictionary and corpus bag-of-words are saved and available.")
+        # Check what the user wants to do, and stop recording the time while
+        # we wait for the answer
+        stopwatch.pause()
+        answer = input("Would you like to use them? (yes/no) ")
+        stopwatch.restart()
+        if answer.lower().strip() in ['yes', 'y']:
+            use_saved_info = True
+    # Load or Create the TopicManager
+    if use_saved_info:
+        print("Loading the saved dictionary and corpus bag-of-words.")
         topic_manager = TopicManager.saved_topic_manager()
     else:
+        print("Creating the dictionary and corpus bag-of-words from scratch.")
         topic_manager = TopicManager(tokenizer)
 
     # Train the LDA Model
@@ -81,6 +98,4 @@ if __name__ == '__main__':
     pprint(top_topics)
 
     # Print the total runtime of the program
-    elapsed_time = time.time() - start_time
-    elapsed_time = run_time(elapsed_time)
-    print(f"\nTotal time of the program: {elapsed_time}")
+    print(f"\nRuntime -> {stopwatch.run_time()}")
