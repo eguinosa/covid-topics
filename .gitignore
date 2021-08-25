@@ -9,10 +9,8 @@ docs/*
 # Ignore the data saved by the program:
 data/*
 
-# Ignore the Jupyter Notebooks:
+# Ignore HTML files:
 *.html
-*.ipynb
-
 
 # ****************************************
 
