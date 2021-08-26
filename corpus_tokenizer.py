@@ -3,7 +3,6 @@
 import pickle
 from os import mkdir
 from os.path import isdir, isfile, join
-
 from gensim.models import Phrases
 
 from docs_tokenization import lazy_corpus_tokenization
@@ -80,7 +79,7 @@ class CorpusTokenizer:
             phrase_model = Phrases(self.corpus_tokens())
 
             # Export the trained model to use less RAM, faster processing.
-            # The Model updates are no longer possible.
+            # Model updates are no longer possible.
             phrase_model = phrase_model.freeze()
 
             # Add their Bigrams, Trigrams, etc... to each of the tokenized
