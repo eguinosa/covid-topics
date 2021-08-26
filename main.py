@@ -20,53 +20,36 @@ if __name__ == '__main__':
     # Load the documents inside the 'docs' folder.
     print("\nLoading Documents.")
     doc_files = DocumentsManager()
+    print("Done. ")
+    print(f"[{stopwatch.run_time()}]")
 
     # Tokenize all the Documents loaded using Spacy
-    print("\nTokenizing the documents:")
-    # Check if the user wants to use the saved tokenized documents in case they
-    # are available.
-    use_saved_info = False
+    print("\nTokenizing the documents.")
+    # Load the CorpusTokenizer, if it was saved.
     if CorpusTokenizer.are_tokens_saved():
-        print("There are saved tokenized documents available.")
-        # Check what the user wants to do, and stop recording the time while
-        # we wait for the answer
-        stopwatch.pause()
-        answer = input("Would you like to use them? (yes/no) ")
-        stopwatch.restart()
-        if answer.lower().strip() in ['yes', 'y']:
-            use_saved_info = True
-    # Load or Create the CorpusTokenizer
-    if use_saved_info:
         print("Loading the saved tokenized documents.")
         tokenizer = CorpusTokenizer.saved_tokenizer()
+    # Create the corpus tokenizer, if it can't be loaded.
     else:
         print("Tokenizing the documents from scratch.")
         tokenizer = CorpusTokenizer(doc_files.documents_texts())
+    print("Done. ")
+    print(f"[{stopwatch.run_time()}]")
 
     # Creating the Dictionary and the Corpus Bag-of-Words
     print("\nCreating the Dictionary and the Corpus Bag-of-Words.")
-    # Check if the user wants to use the saved dictionary and corpus
-    # bag-of-words if they are available.
-    use_saved_info = False
+    # Load the corpus tokenizer if available, create it otherwise.
     if TopicManager.is_topic_manager_saved():
-        print("The dictionary and corpus bag-of-words are saved and available.")
-        # Check what the user wants to do, and stop recording the time while
-        # we wait for the answer
-        stopwatch.pause()
-        answer = input("Would you like to use them? (yes/no) ")
-        stopwatch.restart()
-        if answer.lower().strip() in ['yes', 'y']:
-            use_saved_info = True
-    # Load or Create the TopicManager
-    if use_saved_info:
         print("Loading the saved dictionary and corpus bag-of-words.")
         topic_manager = TopicManager.saved_topic_manager()
     else:
         print("Creating the dictionary and corpus bag-of-words from scratch.")
         topic_manager = TopicManager(tokenizer)
+    print("Done. ")
+    print(f"[{stopwatch.run_time()}]")
 
     # Train the LDA Model
-    print("Training the LDA Model.")
+    print("\nTraining the LDA Model.")
 
     # Set training parameters.
     num_topics = 4
@@ -98,4 +81,5 @@ if __name__ == '__main__':
     pprint(top_topics)
 
     # Print the total runtime of the program
-    print(f"\nRuntime -> {stopwatch.run_time()}")
+    print("\nProgram Finished.")
+    print(f"[{stopwatch.run_time()}]")
