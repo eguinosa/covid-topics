@@ -5,8 +5,11 @@ from os.path import isdir, isfile, join
 
 
 class DocumentsManager:
-    """Class to manage the files of the documents in the corpus."""
-
+    """
+    Manage the documents files of the corpus. Upon initialization creates an
+    index with all the documents in the corpus, and later when requested,
+    returns the documents one by one, to save memory resources.
+    """
     # The location of the documents
     docs_folder = 'docs'
     # The file extension of the documents
