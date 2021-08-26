@@ -53,8 +53,8 @@ class TimeKeeper:
         """        
         # Update the runtime value only is the TimeKeeper was running.
         if self.current_state == 'running':
-            self.runtime = time.time() - self.start_time
-            # Reset the start time, to keep recording
+            self.runtime += time.time() - self.start_time
+            # Reset the start time, to avoid adding the same segment again
             self.start_time = time.time()
 
         # Calculating the hours, minutes, seconds and milliseconds
