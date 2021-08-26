@@ -1,12 +1,11 @@
 # Gelin Eguinosa Rosique
 
+import pickle
+from os import mkdir, listdir, remove
+from os.path import isdir, isfile, join
 from gensim import corpora
 from gensim.corpora import Dictionary
 from gensim.models import LdaModel
-
-import pickle
-from os import mkdir, listdir, remove
-from os.path import isdir, isfile, abspath, join
 
 
 class TopicManager:
@@ -15,11 +14,12 @@ class TopicManager:
     """
     # Location of the class data
     _data_folder = 'data'
-    _dict_file = 'dictionary.pickle'
+    _dict_file = 'dictionary.dict'
     _corpus_file = 'corpus_bow.mm'
     _lda_folder = 'lda_models'
     _lda_index_file = 'index_lda_model.pickle'
     _lda_prefix = 'lda_model_'
+    _current_lda_file = 'current_lda_model'
 
     def __init__(self, tokenizer, _use_saved=False):
         """
@@ -37,8 +37,7 @@ class TopicManager:
                 raise Exception("The dictionary of the TopicManager was not"
                                 " saved.")
             # Load the dictionary
-            with open(dict_path, 'rb') as file:
-                self.dictionary = pickle.load(file)
+            self.dictionary = Dictionary.load(dict_path)
 
             # Check if the corpus bag-of-word file exists.
             corpus_path = join(self._data_folder, self._corpus_file)
@@ -46,8 +45,7 @@ class TopicManager:
                 raise Exception("The Corpus Bag-of-Words of the TopicManager"
                                 " was not saved.")
             # Load the corpus bag-of-words
-            corpus_full_path = abspath(corpus_path)
-            self.corpus_bow = corpora.MmCorpus(corpus_full_path)
+            self.corpus_bow = corpora.MmCorpus(corpus_path)
 
             # Check if the LDA Model index file exists.
             lda_index_path = join(self._data_folder, self._lda_folder,
@@ -77,17 +75,14 @@ class TopicManager:
             self.dictionary.filter_extremes(no_below=2, no_above=0.75)
             # Save the dictionary
             dict_path = join(self._data_folder, self._dict_file)
-            with open(dict_path, 'wb') as file:
-                pickle.dump(self.dictionary, file)
+            self.dictionary.save(dict_path)
 
             # Create & Save the corpus bag-of-words representation, using a
             # lazy representation of the corpus bag-of-words, so we only have
             # one document bag-of-words at a time in memory.
             corpus_path = join(self._data_folder, self._corpus_file)
-            corpus_full_path = abspath(corpus_path)
-            corpora.MmCorpus.serialize(corpus_full_path,
-                                       self._lazy_corpus_bow(tokenizer))
-            self.corpus_bow = corpora.MmCorpus(corpus_full_path)
+            corpora.MmCorpus.serialize(corpus_path, self._lazy_corpus_bow(tokenizer))
+            self.corpus_bow = corpora.MmCorpus(corpus_path)
 
             # Create an index to keep track of the lda models that will be
             # created and save it.
@@ -97,14 +92,13 @@ class TopicManager:
             with open(lda_index_path, 'wb') as file:
                 pickle.dump(self.lda_index, file)
 
-            # Delete all the LDA Models created for a previous TopicManager
+            # Delete all the LDA Models created for a previous TopicManager.
             lda_folder_path = join(self._data_folder, self._lda_folder)
             for file_name in listdir(lda_folder_path):
                 lda_file_path = join(lda_folder_path, file_name)
                 # Check is the name of the file is formatted as a lda model.
-                if (isfile(lda_file_path) and file_name.startswith(self._lda_prefix)
-                        and file_name.endswith('.pickle')):
-                    # Once we confirm it is an LDA Model, delete the file
+                if isfile(lda_file_path) and file_name.startswith(self._lda_prefix):
+                    # Once we confirm it is an LDA Model, delete the file.
                     remove(lda_file_path)
 
     def _lazy_corpus_bow(self, tokenizer):
@@ -128,15 +122,16 @@ class TopicManager:
             lda_model_file = self.lda_index[lda_params]
             lda_model_path = join(self._data_folder, self._lda_folder,
                                   lda_model_file)
+            # Load the LDA Model and return it
+            lda_model = LdaModel.load(lda_model_path)
 
-            # Load the LDA Model
-            with open(lda_model_path, 'rb') as file:
-                lda_model = pickle.load(file)
-
-            # Return the loaded LDA Model
+            # Update the latest use LDA Model to use in Jupyter Notebook
+            current_lda_path = join(self._data_folder, self._current_lda_file)
+            lda_model.save(current_lda_path)
+            # Return the requested LDA Model
             return lda_model
 
-        # This LDA Model is not in the index, we need to calculate it.
+        # The LDA Model is not in the index, we need to calculate it.
         else:
             # Make the id to word dictionary
             temp = self.dictionary[0]  # This is only to "load" the dictionary
@@ -155,23 +150,26 @@ class TopicManager:
                 eval_every=eval_every
             )
 
-            # Save the LDA Model
+            # Saving the LDA Model:
+            # Create the name.
             lda_id = len(self.lda_index) + 1
-            lda_model_name = self._lda_prefix + str(lda_id) + '.pickle'
-            # Save the name in the lda_index
-            self.lda_index[lda_params] = lda_model_name
-            # Save in the LDA Model in a file
+            lda_model_name = self._lda_prefix + str(lda_id)
+            # Save the LDA Model in a file
             lda_model_path = join(self._data_folder, self._lda_folder,
                                   lda_model_name)
-            with open(lda_model_path, 'wb') as file:
-                pickle.dump(lda_model, file)
+            lda_model.save(lda_model_path)
 
+            # Save the name of the LDA Model in the Index.
+            self.lda_index[lda_params] = lda_model_name
             # Update the value of the Index of the LDA Model
             lda_index_path = join(self._data_folder, self._lda_folder,
                                   self._lda_index_file)
             with open(lda_index_path, 'wb') as file:
                 pickle.dump(self.lda_index, file)
 
+            # Update the latest use LDA Model to use in Jupyter Notebook
+            current_lda_path = join(self._data_folder, self._current_lda_file)
+            lda_model.save(current_lda_path)
             # Return the calculated LDA Model
             return lda_model
 
