@@ -45,6 +45,7 @@ class DocumentsManager:
         """
         # Iterate through the locations of the documents saved in the index.
         for file_path in self.documents.values():
+            # Load the content of the document and return them one by one.
             with open(file_path, 'r', encoding='utf-8') as file:
                 text_document = file.read()
             yield text_document
