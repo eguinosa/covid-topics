@@ -1,6 +1,6 @@
 # Gelin Eguinosa Rosique
 
-from sys import exit
+from sys import exit, argv
 from pprint import pprint
 
 from docs_stream import DocumentsManager
@@ -58,6 +58,13 @@ if __name__ == '__main__':
     iterations = 400
     eval_every = None
 
+    # Check if the desired number of topics was passed as an argument in the
+    # Command Line
+    if len(argv) > 1:
+        # We received a parameter from the command line.
+        # Assume it is the desired number of topics.
+        num_topics = int(argv[1])
+
     # Create and train the LDA Model
     lda_model = topic_manager.lda_model(num_topics,
                                         chunksize,
@@ -72,13 +79,13 @@ if __name__ == '__main__':
     # Printing Topics
     top_topics = lda_model.top_topics(topic_manager.corpus_bow)
 
-    # Average topic coherence
-    average_coherence = sum([topic[1] for topic in top_topics]) / len(top_topics)
-    print("\nAverage topic coherence: %.4f." % average_coherence)
-
     # Top Topics
     print("\nThe Top Topics are:")
     pprint(top_topics)
+
+    # Average topic coherence
+    average_coherence = sum([topic[1] for topic in top_topics]) / len(top_topics)
+    print(f"\nThe {num_topics} topics' average topic coherence is: {average_coherence:.4f}")
 
     # Print the total runtime of the program
     print("\nProgram Finished.")
