@@ -113,6 +113,20 @@ class TopicManager:
 
     def lda_model(self, num_topics, chunksize, passes=20, iterations=400,
                   eval_every=None):
+        """
+        Creates a LDA Model with the specified parameters, if the desired model
+        was already created and saved, then it will be loaded from the saved
+        file to save time.
+        :param num_topics: The number of requested latent topics to be extracted
+        from the training corpus.
+        :param chunksize: Number of documents to be used in each training chunk.
+        :param passes: Number of passes through the corpus during training.
+        :param iterations: Maximum number of iterations through the corpus when
+        inferring the topic distribution of a corpus.
+        :param eval_every: Log perplexity is estimated every that many updates.
+        Setting this to one slows down training by ~2x.
+        :return: The LDA Model.
+        """
         # Save the parameters in a tuple, so they are easier to use.
         lda_params = (num_topics, chunksize, passes, iterations, eval_every)
 

@@ -85,7 +85,7 @@ if __name__ == '__main__':
 
     # Average topic coherence
     average_coherence = sum([topic[1] for topic in top_topics]) / len(top_topics)
-    print(f"\nThe {num_topics} topics' average topic coherence is: {average_coherence:.4f}")
+    print(f"\nThe {num_topics} topics average topic coherence is: {average_coherence:.4f}")
 
     # Print the total runtime of the program
     print("\nProgram Finished.")
