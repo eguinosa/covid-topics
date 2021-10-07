@@ -37,7 +37,7 @@ class DocumentsManager:
             if isfile(doc_path) and doc_name.endswith(self.docs_suffix):
                 self.documents[doc_name] = doc_path
 
-    def documents_texts(self):
+    def __iter__(self):
         """
         Iterates through all the documents' files to send their texts.
         :return: A sequence containing the texts all the documents in the

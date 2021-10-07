@@ -32,7 +32,7 @@ if __name__ == '__main__':
     # Create the corpus tokenizer, if it can't be loaded.
     else:
         print("Tokenizing the documents from scratch.")
-        tokenizer = CorpusTokenizer(doc_files.documents_texts())
+        tokenizer = CorpusTokenizer(doc_files)
     print("Done. ")
     print(f"[{stopwatch.run_time()}]")
 
